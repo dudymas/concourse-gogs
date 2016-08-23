@@ -1,0 +1,44 @@
+concourse-db:
+  image: postgres:9.5
+  env_file:
+    - env.db
+  environment:
+    POSTGRES_DB: concourse
+    PGDATA: /database
+
+concourse-web:
+  image: concourse/concourse
+  links: [concourse-db]
+  command: web
+  ports:
+    - "8080:8080"
+  volumes: ["./keys/web:/concourse-keys"]
+  env_file:
+    - env
+
+concourse-worker:
+  image: concourse/concourse
+  privileged: true
+  links: [concourse-web]
+  command: worker
+  volumes: ["./keys/worker:/concourse-keys"]
+  environment:
+    CONCOURSE_TSA_HOST: concourse-web
+
+gogs:
+  image: gogs/gogs
+  links: [gogs-db]
+  volumes:
+    - ./gogs.ini:/data/gogs/conf/app.ini
+  ports:
+    - "10022:22" #ssh for git only
+    - "10080:3000" #webportal for messing with gogs
+
+gogs-db:
+  image: postgres
+  env_file:
+    - env.gogs-db
+  environment:
+    POSTGRES_DB: gogs
+    PGDATA: /database
+
